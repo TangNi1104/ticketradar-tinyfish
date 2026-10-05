@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Follow artists, catch London presales, and watch official ticket prices with TinyFish.">
+  <title>TicketRadar — Never miss the drop</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header><a class="logo" href="#"><span>TR</span> TicketRadar</a><div class="city">London <i></i></div></header>
+  <main>
+    <section id="onboarding" class="onboarding">
+      <div class="hero-copy"><div class="kicker">LIVE LONDON TICKET INTELLIGENCE</div><h1>Follow the artist.<br><em>Never miss the drop.</em></h1><p>One radar for concert announcements, public presale codes and official tickets across Ticketmaster, AXS and DICE.</p><div class="seller-row"><span>Ticketmaster</span><span>AXS</span><span>DICE</span><b>powered by TinyFish</b></div></div>
+      <div class="setup-card"><div class="step">01 / 01</div><h2>Who do you want to see?</h2><p>Add up to 8 artists. We’ll scan the live web for their London shows.</p><form id="artist-form"><div class="artist-input"><input id="artist-input" placeholder="Type an artist, then press Enter" autocomplete="off"><button type="submit">Add</button></div></form><div id="artist-chips" class="chips"></div><button id="start" class="primary" disabled>Start my radar <span>→</span></button><small>Only your selected artists are monitored. You can change them anytime.</small></div>
+    </section>
+
+    <section id="loading" class="loading hidden"><div class="radar"><div></div><span>♪</span></div><div><div class="kicker">TINYFISH IS ON THE LIVE WEB</div><h2>Scanning London’s ticket sites</h2><p id="progress">Looking for your artists across official sellers…</p><a id="live-view" class="hidden" target="_blank" rel="noopener">Watch the live agent ↗</a></div></section>
+
+    <section id="dashboard" class="dashboard hidden">
+      <nav class="side"><a class="logo" href="#"><span>TR</span> TicketRadar</a><div class="nav-group"><b>RADAR</b><button class="active">◉ Discover</button><button>♡ My watches <strong id="watch-count">0</strong></button><button>♬ Artists <strong id="artist-count">0</strong></button></div><div class="side-note"><b>LIVE WEB</b><p><i></i> TinyFish connected</p><small>Official sources checked on every scan.</small></div></nav>
+      <div class="dash-main"><div class="topbar"><div><div class="kicker">YOUR LONDON RADAR</div><h1>Upcoming drops</h1></div><div class="actions"><button id="edit-artists">Edit artists</button><button id="refresh" class="dark">↻ Scan live web</button></div></div>
+        <div id="presale-alerts"></div>
+        <div class="filter-row"><div><button class="filter active" data-filter="all">All events</button><button class="filter" data-filter="presale">Presale</button><button class="filter" data-filter="on-sale">On sale</button></div><span id="checked-at">Not checked yet</span></div>
+        <div id="events" class="events"></div>
+        <div id="empty" class="empty hidden"><div>◌</div><h3>No verified London shows found</h3><p>That can change fast. Scan again later—we won’t invent events that aren’t confirmed.</p></div>
+        <section class="following"><div><div class="kicker">ALWAYS WATCHING</div><h2>Your artists</h2></div><div id="following-chips" class="chips"></div></section>
+      </div>
+    </section>
+
+    <section id="error" class="error hidden"><b>Radar interrupted</b><p id="error-message"></p><button id="retry">Try again</button></section>
+  </main>
+
+  <dialog id="watch-dialog"><form method="dialog" id="watch-form"><button class="close" value="cancel" aria-label="Close">×</button><div class="kicker">SET YOUR TICKET STRATEGY</div><h2 id="dialog-title">Watch this event</h2><p id="dialog-meta"></p><div class="modes"><label><input type="radio" name="mode" value="immediate" checked><span><b>Get me in</b><small>Remind me 1 week, 1 day and 30 minutes before tickets drop.</small></span></label><label><input type="radio" name="mode" value="chance"><span><b>Take a chance</b><small>Alert me the moment a matching ticket drops into my range.</small></span></label></div><div id="chance-fields" class="chance hidden"><div><label>Maximum per ticket</label><div class="money">£ <input id="budget" type="number" min="1" placeholder="100"></div></div><div><label>Tickets needed</label><select id="quantity"><option>1</option><option selected>2</option><option>3</option><option>4</option></select></div><div class="wide"><label>Preferred section or area</label><input id="section" placeholder="e.g. Standing, Level 1, sections 101–103"></div><div class="wide"><label>Ticket source</label><select id="ticket-type"><option>Primary or official resale</option><option>Primary sale only</option><option>Official resale only</option></select></div></div><button id="save-watch" class="primary" value="default">Save ticket watch <span>→</span></button><small class="dialog-note">Public presale alerts are always on, regardless of your mode.</small></form></dialog>
+  <div id="toast" class="toast hidden"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
