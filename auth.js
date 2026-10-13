@@ -22,11 +22,16 @@ function normalizedEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : '';
 }
 
-function cleanProfile(value, email) {
+function normalizedUsername(value) {
+  const username = String(value || '').trim().toLowerCase();
+  return /^[a-z0-9_]{3,24}$/.test(username) ? username : '';
+}
+
+function cleanProfile(value) {
   const source = value && typeof value === 'object' ? value : {};
   const artists = Array.isArray(source.artists) ? source.artists.map(v => String(v).trim()).filter(Boolean).slice(0, 8) : [];
   const watches = source.watches && typeof source.watches === 'object' && !Array.isArray(source.watches) ? Object.fromEntries(Object.entries(source.watches).slice(0, 100)) : {};
-  return { artists, watches, notificationEmail: normalizedEmail(source.notificationEmail) || email };
+  return { artists, watches, notificationEmail: normalizedEmail(source.notificationEmail) };
 }
 
 function hashPassword(password, salt) {
@@ -37,16 +42,16 @@ function cookies(req) {
   return Object.fromEntries(String(req.headers.cookie || '').split(';').map(part => part.trim().split('=').map(decodeURIComponent)).filter(parts => parts.length === 2));
 }
 
-function currentEmail(req) {
+function currentUsername(req) {
   const token = cookies(req).tr_session;
   const session = token && sessions.get(token);
   if (!session || session.expiresAt < Date.now()) { if (token) sessions.delete(token); return ''; }
-  return session.email;
+  return session.username;
 }
 
-function startSession(res, email) {
+function startSession(res, username) {
   const token = crypto.randomBytes(32).toString('hex');
-  sessions.set(token, { email, expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 });
+  sessions.set(token, { username, expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 });
   res.setHeader('Set-Cookie', `tr_session=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800`);
 }
 
@@ -56,27 +61,27 @@ async function handleAuth(req, res, pathname, readBody, json) {
 
   if (req.method === 'POST' && pathname === '/api/auth/signup') {
     const body = await readBody(req);
-    const email = normalizedEmail(body.email);
+    const username = normalizedUsername(body.username);
     const password = String(body.password || '');
-    if (!email) return json(res, 400, { error: 'Enter a valid email address.' }), true;
+    if (!username) return json(res, 400, { error: 'Username must be 3–24 letters, numbers, or underscores.' }), true;
     if (password.length < 8) return json(res, 400, { error: 'Password must be at least 8 characters.' }), true;
-    if (users[email]) return json(res, 409, { error: 'An account already exists. Log in instead.' }), true;
+    if (users[username]) return json(res, 409, { error: 'That username is taken. Choose another one.' }), true;
     const salt = crypto.randomBytes(16).toString('hex');
-    users[email] = { salt, hash: hashPassword(password, salt), profile: cleanProfile(body.profile, email) };
-    saveUsers(users); startSession(res, email);
-    return json(res, 201, { email, profile: users[email].profile }), true;
+    users[username] = { salt, hash: hashPassword(password, salt), profile: cleanProfile(body.profile) };
+    saveUsers(users); startSession(res, username);
+    return json(res, 201, { username, profile: users[username].profile }), true;
   }
 
   if (req.method === 'POST' && pathname === '/api/auth/login') {
     const body = await readBody(req);
-    const email = normalizedEmail(body.email);
+    const username = normalizedUsername(body.username);
     const password = String(body.password || '');
-    const user = users[email];
+    const user = users[username];
     const supplied = user ? Buffer.from(hashPassword(password, user.salt), 'hex') : Buffer.alloc(64);
     const expected = user ? Buffer.from(user.hash, 'hex') : crypto.randomBytes(64);
-    if (!user || !crypto.timingSafeEqual(supplied, expected)) return json(res, 401, { error: 'Email or password is incorrect.' }), true;
-    startSession(res, email);
-    return json(res, 200, { email, profile: cleanProfile(user.profile, email) }), true;
+    if (!user || !crypto.timingSafeEqual(supplied, expected)) return json(res, 401, { error: 'Username or password is incorrect.' }), true;
+    startSession(res, username);
+    return json(res, 200, { username, profile: cleanProfile(user.profile) }), true;
   }
 
   if (req.method === 'POST' && pathname === '/api/auth/logout') {
@@ -86,18 +91,18 @@ async function handleAuth(req, res, pathname, readBody, json) {
     return json(res, 200, { ok: true }), true;
   }
 
-  const email = currentEmail(req);
+  const username = currentUsername(req);
   if (req.method === 'GET' && pathname === '/api/auth/me') {
-    if (!email || !users[email]) return json(res, 401, { error: 'Not logged in.' }), true;
-    return json(res, 200, { email, profile: cleanProfile(users[email].profile, email) }), true;
+    if (!username || !users[username]) return json(res, 401, { error: 'Not logged in.' }), true;
+    return json(res, 200, { username, profile: cleanProfile(users[username].profile) }), true;
   }
 
   if (req.method === 'PUT' && pathname === '/api/profile') {
-    if (!email || !users[email]) return json(res, 401, { error: 'Log in to sync preferences.' }), true;
+    if (!username || !users[username]) return json(res, 401, { error: 'Log in to sync preferences.' }), true;
     const body = await readBody(req);
-    users[email].profile = cleanProfile(body, email);
+    users[username].profile = cleanProfile(body);
     saveUsers(users);
-    return json(res, 200, { email, profile: users[email].profile }), true;
+    return json(res, 200, { username, profile: users[username].profile }), true;
   }
 
   json(res, 405, { error: 'Method not allowed' });
