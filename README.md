@@ -2,9 +2,13 @@
 
 **Follow the artist. Never miss the drop.** TicketRadar is a London-only concert discovery and official-ticket watch experience for artists the user chooses.
 
-TinyFish Agent is the live-web engine. It investigates official artist and venue pages plus Ticketmaster, AXS, and DICE, then returns verified London events, sale dates, public presale information, prices, availability, and direct official links.
+TinyFish Agent investigates official artist and venue pages, Ticketmaster, AXS, and DICE to find verified London events, sale dates, presale information, prices, availability, and official purchase links.
 
-## Product flow
+For each concert, users choose between two routes:
+
+- **Get Me In:** receive reminders one week, one day, and 30 minutes before tickets go on sale.
+- **Take a Chance:** set a maximum budget, ticket quantity, and preferred seating area, then wait for a matching ticket or price drop.
+## Product flow 
 
 1. Choose up to eight artists.
 2. TinyFish scans the live web for their upcoming London shows.
