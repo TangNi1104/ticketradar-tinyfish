@@ -2,7 +2,7 @@
 
 **Follow the artist. Never miss the drop.** TicketRadar is a London-only concert discovery and official-ticket watch experience for artists the user chooses.
 
-TinyFish Search first finds the most relevant official ticket pages, TinyFish Fetch quickly reads them, and TinyFish Agent verifies dynamic or incomplete details. Artists are checked in parallel and recent results are cached for 15 minutes, making repeat scans much faster. TicketRadar returns verified London events, sale dates, public presale information, prices, availability, and direct official links.
+TinyFish Search first finds the most relevant official ticket pages and shows fast matches in the dashboard within seconds. TinyFish Fetch and TinyFish Agent then continue in the background to verify dynamic or incomplete details. Artists are checked in parallel and recent results are cached for 15 minutes, making repeat scans nearly instant. TicketRadar returns verified London events, sale dates, public presale information, prices, availability, and direct official links.
 
 For each concert, users choose between two routes:
 
