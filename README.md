@@ -11,7 +11,7 @@ For each concert, users choose between two routes:
 
 ## Product flow
 
-1. Create an account or log in with an email and password. A new account copies the artists and watches already saved in the browser.
+1. Create an account or log in with a short username and password. The separate notification email is used only for ticket alerts. A new account copies the artists and watches already saved in the browser.
 2. Choose up to eight artists and enter the email address where alerts should be sent.
 3. TinyFish Search, Fetch, and Agent scan the live web for their upcoming London shows. Each artist is checked separately, with up to three checks running at once.
 4. Receive email alerts for officially published presale information, regardless of the ticket mode selected later.
