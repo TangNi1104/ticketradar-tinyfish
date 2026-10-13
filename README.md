@@ -11,17 +11,20 @@ For each concert, users choose between two routes:
 
 ## Product flow
 
-1. Choose up to eight artists and enter the email address where alerts should be sent.
-2. TinyFish Search, Fetch, and Agent scan the live web for their upcoming London shows. Each artist is checked separately, with up to three checks running at once.
-3. Receive email alerts for officially published presale information, regardless of the ticket mode selected later.
-4. For each event, choose:
+1. Create an account or log in with an email and password. A new account copies the artists and watches already saved in the browser.
+2. Choose up to eight artists and enter the email address where alerts should be sent.
+3. TinyFish Search, Fetch, and Agent scan the live web for their upcoming London shows. Each artist is checked separately, with up to three checks running at once.
+4. Receive email alerts for officially published presale information, regardless of the ticket mode selected later.
+5. For each event, choose:
    - **Get me in:** reminders one week, one day, and 30 minutes before the sale.
    - **Take a chance:** set budget, quantity, section, and permitted ticket source.
-5. When an alert rule is met, TicketRadar emails the user and links directly to the verified official purchase page.
+6. When an alert rule is met, TicketRadar emails the user and links directly to the verified official purchase page.
 
 The TicketRadar logo returns to the home/setup screen. The dashboard menu provides three views: **Discover** for all verified events, **My watches** for concerts with a saved ticket strategy, and **Artists** for the user's followed-artist list. On smaller screens, these choices appear in a pull-out menu.
 
-Saved artists, notification email, and watch preferences persist locally in this hackathon MVP. The live event data is never mocked. The interface captures the complete notification flow, but automatic background monitoring and email delivery require a deployed server, a scheduler, a database, and an email provider such as Resend or SendGrid; the local demo does not send real email while it is closed.
+The local prototype includes password-protected accounts. Passwords are salted and hashed, sessions use HTTP-only cookies, and artists, notification email, and watch preferences are stored in the ignored `.data/` directory rather than committed to GitHub. Accounts survive browser-data clearing and work across browsers connected to the same local TicketRadar server, but the local file database is not shared across devices. A public launch should replace it with hosted authentication and a production database.
+
+The live event data is never mocked. The interface captures the complete notification flow, but automatic background monitoring and email delivery require a deployed server, a scheduler, a database, and an email provider such as Resend or SendGrid; the local demo does not send real email while it is closed.
 
 ## Run locally
 
