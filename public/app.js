@@ -18,7 +18,7 @@ function initials(name) { return String(name || '?').split(/\s+/).slice(0,2).map
 
 function profilePayload(){ return {artists:state.artists,watches:state.watches,notificationEmail:state.email}; }
 async function requestJson(url,options={}){const response=await fetch(url,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'Request failed.');return data;}
-function accountLabel(){const label=state.account?`@${state.account.username}`:'Log in';document.querySelectorAll('.account-button').forEach(button=>button.textContent=label);}
+function accountLabel(){const label=state.account?`@${state.account.username}`:'Log in';document.querySelectorAll('.account-button').forEach(button=>button.textContent=label);$('header-nav').classList.toggle('hidden',!state.account);}
 function applyProfile(data){
   state.account={username:data.username,email:data.email};state.artists=Array.isArray(data.profile?.artists)?data.profile.artists:[];state.watches=data.profile?.watches&&typeof data.profile.watches==='object'?data.profile.watches:{};state.email=data.profile?.notificationEmail||data.email||'';
   localStorage.setItem('tr_artists',JSON.stringify(state.artists));localStorage.setItem('tr_watches',JSON.stringify(state.watches));localStorage.setItem('tr_email',state.email);$('notification-email').value=state.email;chips();render();accountLabel();
@@ -59,7 +59,12 @@ function setView(view){
 function showHome(push=true){
   closeMenu();
   $('loading').classList.add('hidden'); $('dashboard').classList.add('hidden'); $('error').classList.add('hidden'); $('onboarding').classList.remove('hidden');
+  document.querySelectorAll('[data-home-nav]').forEach(button=>button.classList.toggle('active',button.dataset.homeNav==='home'));
   if(push) history.pushState({page:'home'},'',location.pathname);
+}
+function showDashboard(view='discover'){
+  $('onboarding').classList.add('hidden');$('loading').classList.add('hidden');$('error').classList.add('hidden');$('dashboard').classList.remove('hidden');setView(view);
+  document.querySelectorAll('[data-home-nav]').forEach(button=>button.classList.toggle('active',button.dataset.homeNav===view));
 }
 
 async function scan() {
@@ -83,6 +88,7 @@ $('menu-toggle').addEventListener('click',()=>{$('side-menu').classList.toggle('
 $('menu-backdrop').addEventListener('click',closeMenu);
 document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>setView(button.dataset.view)));
 document.querySelectorAll('.logo').forEach(logo=>logo.addEventListener('click',e=>{e.preventDefault();showHome();}));
+document.querySelectorAll('[data-home-nav]').forEach(button=>button.addEventListener('click',()=>{const target=button.dataset.homeNav;if(target==='home')showHome();else showDashboard(target);}));
 window.addEventListener('popstate',()=>showHome(false));
 $('notification-settings').addEventListener('click',()=>{$('settings-email').value=state.email;$('email-dialog').showModal();});
 $('email-form').addEventListener('submit',e=>{if(e.submitter?.value==='cancel')return;const email=$('settings-email').value.trim();if(!validEmail(email)){e.preventDefault();$('settings-email').focus();return;}state.email=email;$('notification-email').value=email;localStorage.setItem('tr_email',email);chips();syncProfile();showToast(`Alert email saved. Your watches will use ${email}.`);});
