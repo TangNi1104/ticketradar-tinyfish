@@ -11,15 +11,15 @@ For each concert, users choose between two routes:
 
 ## Product flow
 
-1. Choose up to eight artists.
+1. Choose up to eight artists and enter the email address where alerts should be sent.
 2. TinyFish Search, Fetch, and Agent scan the live web for their upcoming London shows. Each artist is checked separately, with up to three checks running at once.
-3. Receive universal alerts for officially published presale information.
+3. Receive email alerts for officially published presale information, regardless of the ticket mode selected later.
 4. For each event, choose:
    - **Get me in:** reminders one week, one day, and 30 minutes before the sale.
    - **Take a chance:** set budget, quantity, section, and permitted ticket source.
-5. Follow the verified official link to purchase.
+5. When an alert rule is met, TicketRadar emails the user and links directly to the verified official purchase page.
 
-Saved artists and watch preferences persist locally in this hackathon MVP. The live event data is never mocked.
+Saved artists, notification email, and watch preferences persist locally in this hackathon MVP. The live event data is never mocked. The interface captures the complete notification flow, but automatic background monitoring and email delivery require a deployed server, a scheduler, a database, and an email provider such as Resend or SendGrid; the local demo does not send real email while it is closed.
 
 ## Run locally
 
