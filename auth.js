@@ -62,26 +62,30 @@ async function handleAuth(req, res, pathname, readBody, json) {
   if (req.method === 'POST' && pathname === '/api/auth/signup') {
     const body = await readBody(req);
     const username = normalizedUsername(body.username);
+    const email = normalizedEmail(body.email);
     const password = String(body.password || '');
     if (!username) return json(res, 400, { error: 'Username must be 3–24 letters, numbers, or underscores.' }), true;
+    if (!email) return json(res, 400, { error: 'Enter a valid email address.' }), true;
     if (password.length < 8) return json(res, 400, { error: 'Password must be at least 8 characters.' }), true;
     if (users[username]) return json(res, 409, { error: 'That username is taken. Choose another one.' }), true;
     const salt = crypto.randomBytes(16).toString('hex');
-    users[username] = { salt, hash: hashPassword(password, salt), profile: cleanProfile(body.profile) };
+    users[username] = { email, salt, hash: hashPassword(password, salt), profile: cleanProfile({ ...body.profile, notificationEmail: email }) };
     saveUsers(users); startSession(res, username);
-    return json(res, 201, { username, profile: users[username].profile }), true;
+    return json(res, 201, { username, email, profile: users[username].profile }), true;
   }
 
   if (req.method === 'POST' && pathname === '/api/auth/login') {
     const body = await readBody(req);
     const username = normalizedUsername(body.username);
+    const email = normalizedEmail(body.email);
     const password = String(body.password || '');
     const user = users[username];
     const supplied = user ? Buffer.from(hashPassword(password, user.salt), 'hex') : Buffer.alloc(64);
     const expected = user ? Buffer.from(user.hash, 'hex') : crypto.randomBytes(64);
-    if (!user || !crypto.timingSafeEqual(supplied, expected)) return json(res, 401, { error: 'Username or password is incorrect.' }), true;
+    const savedEmail = normalizedEmail(user?.email || user?.profile?.notificationEmail);
+    if (!user || !email || email !== savedEmail || !crypto.timingSafeEqual(supplied, expected)) return json(res, 401, { error: 'Username, email, or password is incorrect.' }), true;
     startSession(res, username);
-    return json(res, 200, { username, profile: cleanProfile(user.profile) }), true;
+    return json(res, 200, { username, email: savedEmail, profile: cleanProfile(user.profile) }), true;
   }
 
   if (req.method === 'POST' && pathname === '/api/auth/logout') {
@@ -94,7 +98,7 @@ async function handleAuth(req, res, pathname, readBody, json) {
   const username = currentUsername(req);
   if (req.method === 'GET' && pathname === '/api/auth/me') {
     if (!username || !users[username]) return json(res, 401, { error: 'Not logged in.' }), true;
-    return json(res, 200, { username, profile: cleanProfile(users[username].profile) }), true;
+    return json(res, 200, { username, email: normalizedEmail(users[username].email || users[username].profile?.notificationEmail), profile: cleanProfile(users[username].profile) }), true;
   }
 
   if (req.method === 'PUT' && pathname === '/api/profile') {
@@ -102,7 +106,7 @@ async function handleAuth(req, res, pathname, readBody, json) {
     const body = await readBody(req);
     users[username].profile = cleanProfile(body);
     saveUsers(users);
-    return json(res, 200, { username, profile: users[username].profile }), true;
+    return json(res, 200, { username, email: normalizedEmail(users[username].email || users[username].profile?.notificationEmail), profile: users[username].profile }), true;
   }
 
   json(res, 405, { error: 'Method not allowed' });
