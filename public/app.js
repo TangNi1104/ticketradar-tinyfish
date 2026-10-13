@@ -1,11 +1,11 @@
 const $ = id => document.getElementById(id);
-const state = { artists: JSON.parse(localStorage.getItem('tr_artists') || '[]'), email: localStorage.getItem('tr_email') || '', events: [], renderedEvents: [], scanEvents: {}, watches: JSON.parse(localStorage.getItem('tr_watches') || '{}'), current: null, filter: 'all', view: 'discover' };
+const state = { artists: JSON.parse(localStorage.getItem('tr_artists') || '[]'), email: localStorage.getItem('tr_email') || '', account: null, events: [], renderedEvents: [], scanEvents: {}, watches: JSON.parse(localStorage.getItem('tr_watches') || '{}'), current: null, filter: 'all', view: 'discover' };
 const esc = v => String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const safeUrl = v => { try { const u = new URL(v); return ['http:','https:'].includes(u.protocol) ? u.href : ''; } catch { return ''; } };
 
 function validEmail(value) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim()); }
 function chips() { const html = state.artists.map((a,i) => `<span>${esc(a)} <button data-remove="${i}" aria-label="Remove ${esc(a)}">×</button></span>`).join(''); $('artist-chips').innerHTML = html; $('following-chips').innerHTML = state.artists.map(a => `<span>${esc(a)} <i>live</i></span>`).join(''); $('start').disabled = !state.artists.length || !validEmail(state.email); $('artist-count').textContent = state.artists.length; }
-function persistArtists() { localStorage.setItem('tr_artists', JSON.stringify(state.artists)); chips(); }
+function persistArtists() { localStorage.setItem('tr_artists', JSON.stringify(state.artists)); chips(); syncProfile(); }
 function addArtist() { const input = $('artist-input'); const name = input.value.trim(); if (name && !state.artists.some(a => a.toLowerCase() === name.toLowerCase()) && state.artists.length < 8) state.artists.push(name); input.value=''; persistArtists(); }
 $('artist-form').addEventListener('submit', e => { e.preventDefault(); addArtist(); });
 $('artist-chips').addEventListener('click', e => { const i = e.target.dataset.remove; if (i !== undefined) { state.artists.splice(Number(i),1); persistArtists(); } });
@@ -15,6 +15,19 @@ $('notification-email').addEventListener('input',e=>{state.email=e.target.value.
 function parseResult(raw) { if (typeof raw === 'object' && raw) return raw; const text = String(raw || '').replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,''); try { return JSON.parse(text); } catch { throw new Error('TinyFish returned an unreadable result. Please scan again.'); } }
 function statusLabel(status) { return ({presale:'Presale soon','on-sale':'On sale','announced':'Announced','sold-out':'Sold out',unknown:'Check seller'})[status] || 'Check seller'; }
 function initials(name) { return String(name || '?').split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase(); }
+
+function profilePayload(){ return {artists:state.artists,watches:state.watches,notificationEmail:state.email}; }
+async function requestJson(url,options={}){const response=await fetch(url,{...options,headers:{'Content-Type':'application/json',...(options.headers||{})}});const data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||'Request failed.');return data;}
+function accountLabel(){const label=state.account?state.account.email:'Log in';document.querySelectorAll('.account-button').forEach(button=>button.textContent=label);}
+function applyProfile(data){
+  state.account={email:data.email};state.artists=Array.isArray(data.profile?.artists)?data.profile.artists:[];state.watches=data.profile?.watches&&typeof data.profile.watches==='object'?data.profile.watches:{};state.email=data.profile?.notificationEmail||data.email;
+  localStorage.setItem('tr_artists',JSON.stringify(state.artists));localStorage.setItem('tr_watches',JSON.stringify(state.watches));localStorage.setItem('tr_email',state.email);$('notification-email').value=state.email;chips();render();accountLabel();
+}
+async function syncProfile(){if(!state.account)return;try{await requestJson('/api/profile',{method:'PUT',body:JSON.stringify(profilePayload())});}catch(error){showToast(`Could not sync account: ${error.message}`);}}
+async function restoreAccount(){try{applyProfile(await requestJson('/api/auth/me'));}catch{accountLabel();}}
+function openAccount(){
+  $('auth-error').classList.add('hidden');$('auth-email').value=state.account?.email||state.email||'';$('auth-password').value='';$('auth-email').disabled=Boolean(state.account);$('auth-password').closest('.notify-field').classList.toggle('hidden',Boolean(state.account));$('auth-actions').classList.toggle('hidden',Boolean(state.account));$('logout').classList.toggle('hidden',!state.account);$('auth-title').textContent=state.account?'Account saved':'Save your radar';$('auth-copy').textContent=state.account?`Logged in as ${state.account.email}. Your artists and watches sync to this account.`:'Create an account or log in to restore your artists and ticket watches.';$('auth-dialog').showModal();
+}
 
 function render() {
   const source = state.view === 'watches' ? Object.values(state.watches).map(watch=>watch.event).filter(Boolean) : state.events;
@@ -63,7 +76,7 @@ async function scan() {
   }catch(error){$('loading').classList.add('hidden');$('error-message').textContent=error.message;$('error').classList.remove('hidden');}
 }
 
-$('start').addEventListener('click',()=>{localStorage.setItem('tr_artists',JSON.stringify(state.artists));localStorage.setItem('tr_email',state.email);scan();});
+$('start').addEventListener('click',()=>{localStorage.setItem('tr_artists',JSON.stringify(state.artists));localStorage.setItem('tr_email',state.email);syncProfile();scan();});
 $('refresh').addEventListener('click',scan);$('retry').addEventListener('click',scan);
 $('edit-artists').addEventListener('click',()=>{$('dashboard').classList.add('hidden');$('onboarding').classList.remove('hidden');});
 $('menu-toggle').addEventListener('click',()=>{$('side-menu').classList.toggle('open');$('menu-backdrop').classList.toggle('hidden',!$('side-menu').classList.contains('open'));});
@@ -72,13 +85,17 @@ document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener
 document.querySelectorAll('.logo').forEach(logo=>logo.addEventListener('click',e=>{e.preventDefault();showHome();}));
 window.addEventListener('popstate',()=>showHome(false));
 $('notification-settings').addEventListener('click',()=>{$('settings-email').value=state.email;$('email-dialog').showModal();});
-$('email-form').addEventListener('submit',e=>{if(e.submitter?.value==='cancel')return;const email=$('settings-email').value.trim();if(!validEmail(email)){e.preventDefault();$('settings-email').focus();return;}state.email=email;$('notification-email').value=email;localStorage.setItem('tr_email',email);chips();showToast(`Alert email saved. Your watches will use ${email}.`);});
+$('email-form').addEventListener('submit',e=>{if(e.submitter?.value==='cancel')return;const email=$('settings-email').value.trim();if(!validEmail(email)){e.preventDefault();$('settings-email').focus();return;}state.email=email;$('notification-email').value=email;localStorage.setItem('tr_email',email);chips();syncProfile();showToast(`Alert email saved. Your watches will use ${email}.`);});
+document.querySelectorAll('.account-button').forEach(button=>button.addEventListener('click',openAccount));
+$('auth-close').addEventListener('click',()=>$('auth-dialog').close());
+$('auth-form').addEventListener('submit',async e=>{e.preventDefault();const action=e.submitter?.value||'login';const email=$('auth-email').value.trim();const password=$('auth-password').value;try{const data=await requestJson(`/api/auth/${action}`,{method:'POST',body:JSON.stringify({email,password,profile:profilePayload()})});applyProfile(data);$('auth-dialog').close();showToast(action==='signup'?'Account created. Your preferences are saved.':'Welcome back. Your radar has been restored.');}catch(error){$('auth-error').textContent=error.message;$('auth-error').classList.remove('hidden');}});
+$('logout').addEventListener('click',async()=>{await requestJson('/api/auth/logout',{method:'POST'}).catch(()=>{});state.account=null;state.artists=[];state.watches={};state.email='';localStorage.removeItem('tr_artists');localStorage.removeItem('tr_watches');localStorage.removeItem('tr_email');$('notification-email').value='';chips();render();accountLabel();$('auth-dialog').close();showHome();showToast('Logged out. Local preferences were cleared from this browser.');});
 document.querySelectorAll('.filter').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.filter').forEach(b=>b.classList.remove('active'));btn.classList.add('active');state.filter=btn.dataset.filter;render();}));
 
 $('events').addEventListener('click',e=>{const i=e.target.dataset.watch;if(i===undefined)return;state.current=state.renderedEvents[Number(i)];$('dialog-title').textContent=state.current.artist;$('dialog-meta').textContent=`${state.current.venue} · ${state.current.date}`;const existing=state.watches[state.current.id];if(existing){document.querySelector(`input[name="mode"][value="${existing.mode}"]`).checked=true;$('budget').value=existing.budget||'';$('quantity').value=existing.quantity||'2';$('section').value=existing.section||'';$('ticket-type').value=existing.ticketType||'Primary or official resale';}toggleChance();$('watch-dialog').showModal();});
 function toggleChance(){const mode=document.querySelector('input[name="mode"]:checked').value;$('chance-fields').classList.toggle('hidden',mode!=='chance');$('budget').required=mode==='chance';}
 document.querySelectorAll('input[name="mode"]').forEach(r=>r.addEventListener('change',toggleChance));
-$('watch-form').addEventListener('submit',e=>{if(e.submitter?.value==='cancel')return;const mode=document.querySelector('input[name="mode"]:checked').value;if(mode==='chance'&&!$('budget').value){e.preventDefault();$('budget').focus();return;}state.watches[state.current.id]={mode,email:state.email,budget:$('budget').value,quantity:$('quantity').value,section:$('section').value.trim(),ticketType:$('ticket-type').value,event:state.current};localStorage.setItem('tr_watches',JSON.stringify(state.watches));render();showToast(mode==='immediate'?`Sale reminders saved for ${state.email}.`:`Price watch saved for ${state.email}.`);});
+$('watch-form').addEventListener('submit',e=>{if(e.submitter?.value==='cancel')return;const mode=document.querySelector('input[name="mode"]:checked').value;if(mode==='chance'&&!$('budget').value){e.preventDefault();$('budget').focus();return;}state.watches[state.current.id]={mode,email:state.email,budget:$('budget').value,quantity:$('quantity').value,section:$('section').value.trim(),ticketType:$('ticket-type').value,event:state.current};localStorage.setItem('tr_watches',JSON.stringify(state.watches));render();syncProfile();showToast(mode==='immediate'?`Sale reminders saved for ${state.email}.`:`Price watch saved for ${state.email}.`);});
 function showToast(text){$('toast').textContent=text;$('toast').classList.remove('hidden');setTimeout(()=>$('toast').classList.add('hidden'),4500);}
 
-chips(); if(state.artists.length&&validEmail(state.email)){$('onboarding').classList.add('hidden');$('dashboard').classList.remove('hidden');$('empty').classList.remove('hidden');}
+chips();accountLabel();restoreAccount();if(state.artists.length&&validEmail(state.email)){$('onboarding').classList.add('hidden');$('dashboard').classList.remove('hidden');$('empty').classList.remove('hidden');}
