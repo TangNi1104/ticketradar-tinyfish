@@ -27,7 +27,35 @@ To reduce distraction, the dashboard keeps only **Menu** and `@username` visible
 The local prototype includes password-protected accounts. Passwords are salted and hashed, sessions use HTTP-only cookies, and artists, notification email, and watch preferences are stored in the ignored `.data/` directory rather than committed to GitHub. Accounts survive browser-data clearing and work across browsers connected to the same local TicketRadar server, but the local file database is not shared across devices. A public launch should replace it with hosted authentication and a production database.
 
 The live event data is never mocked. The interface captures the complete notification flow, but automatic background monitoring and email delivery require a deployed server, a scheduler, a database, and an email provider such as Resend or SendGrid; the local demo does not send real email while it is closed.
+## Interface Walkthrough
 
+### 1. Artist Discovery
+Users choose artists to follow and provide
+an email address for alerts.
+
+![Artist discovery](screenshots/01-landing.png)
+
+### 2. Concert Dashboard
+Discover shows, presales, prices, and
+official ticket links in one place.
+
+![Dashboard](screenshots/02-dashboard.png)
+
+### 3. Get Me In
+For users prioritising tickets at release.
+
+![Get Me In](screenshots/03-get-me-in.png)
+
+### 4. Take a Chance
+For users willing to wait for tickets
+matching their preferences.
+
+![Take a Chance](screenshots/04-take-a-chance.png)
+
+### 5. My Ticket Watches
+Review saved concerts and strategies.
+
+![My Watches](screenshots/05-my-watches.png)
 ## Run locally
 
 ### 1. Download the project
