@@ -82,7 +82,7 @@ function parseAgentResult(raw) {
 
 async function searchArtist(artist, key) {
   const params = new URLSearchParams({
-    query: `${artist} London concert tickets 2026 2027 Ticketmaster AXS DICE official`,
+    query: `"${artist}" London concert tickets 2026 2027 Ticketmaster AXS DICE official`,
     purpose: `Find official upcoming London concert and ticket pages for ${artist}`,
     location: 'GB',
     language: 'en'
@@ -101,6 +101,45 @@ function rankCandidate(result) {
   const preferred = ['ticketmaster.co.uk', 'axs.com', 'dice.fm', 'livenation.co.uk', 'theo2.co.uk', 'wembleystadium.com'];
   const index = preferred.findIndex(domain => url.includes(domain));
   return index < 0 ? 0 : 100 - index;
+}
+
+function sellerFromUrl(url) {
+  if (url.includes('ticketmaster')) return 'Ticketmaster';
+  if (url.includes('axs.com')) return 'AXS';
+  if (url.includes('dice.fm')) return 'DICE';
+  if (url.includes('livenation')) return 'Live Nation';
+  return 'Official venue';
+}
+
+function quickMatches(artist, results) {
+  const officialDomains = ['ticketmaster.co.uk', 'axs.com', 'dice.fm', 'livenation.co.uk', 'theo2.co.uk', 'wembleystadium.com'];
+  const artistName = artist.toLowerCase();
+  return results
+    .filter(item => {
+      const url = String(item.url || '').toLowerCase();
+      const title = String(item.title || '').toLowerCase();
+      const text = `${item.title || ''} ${item.snippet || ''}`.toLowerCase();
+      return officialDomains.some(domain => url.includes(domain)) && title.includes(artistName) && (text.includes('london') || url.includes('london'));
+    })
+    .slice(0, 3)
+    .map((item, index) => ({
+      id: `quick-${artist.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${index}`,
+      artist,
+      title: item.title || `${artist} ticket listing`,
+      venue: 'London details being verified',
+      date: 'Checking date and time…',
+      dateISO: '',
+      presaleDate: 'Checking…',
+      generalSaleDate: 'Checking…',
+      status: 'unknown',
+      price: 'Checking…',
+      availability: 'Deep verification in progress',
+      seller: sellerFromUrl(String(item.url || '').toLowerCase()),
+      purchaseUrl: item.url || '',
+      sourceUrl: item.url || '',
+      provisional: true,
+      presale: { published: false, code: '', instructions: '', url: '' }
+    }));
 }
 
 async function fetchCandidates(results, key) {
@@ -180,6 +219,7 @@ async function scanArtist(artist, key, res, index, total) {
   try {
     writeEvent(res, { type: 'progress', artist, index, total, message: `Finding official pages for ${artist}…` });
     searchResults = await searchArtist(artist, key);
+    writeEvent(res, { type: 'quick_result', artist, index, total, data: { events: quickMatches(artist, searchResults) } });
     writeEvent(res, { type: 'progress', artist, index, total, message: `Reading the best ticket pages for ${artist}…` });
     pages = await fetchCandidates(searchResults, key);
   } catch (error) {
