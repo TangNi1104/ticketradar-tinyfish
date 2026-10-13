@@ -20,7 +20,7 @@ For each concert, users choose between two routes:
    - **Take a chance:** set budget, quantity, section, and permitted ticket source.
 6. When an alert rule is met, TicketRadar emails the user and links directly to the verified official purchase page.
 
-The TicketRadar logo returns to the home/setup screen. The dashboard menu provides three views: **Discover** for all verified events, **My watches** for concerts with a saved ticket strategy, and **Artists** for the user's followed-artist list. On smaller screens, these choices appear in a pull-out menu.
+The TicketRadar logo returns to the home/setup screen. Once logged in, the homepage header also shows **Home**, **Discover**, **My watches**, and **Artists**. The dashboard menu provides the same three radar views: **Discover** for all verified events, **My watches** for concerts with a saved ticket strategy, and **Artists** for the user's followed-artist list. On smaller screens, the dashboard choices also appear in a pull-out menu.
 
 The local prototype includes password-protected accounts. Passwords are salted and hashed, sessions use HTTP-only cookies, and artists, notification email, and watch preferences are stored in the ignored `.data/` directory rather than committed to GitHub. Accounts survive browser-data clearing and work across browsers connected to the same local TicketRadar server, but the local file database is not shared across devices. A public launch should replace it with hosted authentication and a production database.
 
