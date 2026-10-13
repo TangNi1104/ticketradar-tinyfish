@@ -1,6 +1,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const { handleAuth } = require('./auth');
 
 const PORT = process.env.PORT || 3000;
 const publicDir = path.join(__dirname, 'public');
@@ -277,16 +278,22 @@ async function discover(req, res) {
   }
 }
 
-const server = http.createServer((req, res) => {
-  if (req.method === 'POST' && req.url === '/api/discover') return discover(req, res);
-  const pathname = req.url.split('?')[0];
-  const rawPath = pathname === '/' ? '/index.html' : pathname;
-  const filePath = path.resolve(publicDir, '.' + rawPath);
-  if (!filePath.startsWith(publicDir) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) return json(res, 404, { error: 'Not found' });
-  const ext = path.extname(filePath);
-  const types = { '.html':'text/html', '.css':'text/css', '.js':'text/javascript', '.svg':'image/svg+xml' };
-  res.writeHead(200, { 'Content-Type': `${types[ext] || 'application/octet-stream'}; charset=utf-8`, 'Cache-Control': 'no-store' });
-  fs.createReadStream(filePath).pipe(res);
+const server = http.createServer(async (req, res) => {
+  try {
+    const pathname = req.url.split('?')[0];
+    if (await handleAuth(req, res, pathname, readBody, json)) return;
+    if (req.method === 'POST' && pathname === '/api/discover') return discover(req, res);
+    const rawPath = pathname === '/' ? '/index.html' : pathname;
+    const filePath = path.resolve(publicDir, '.' + rawPath);
+    if (!filePath.startsWith(publicDir) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) return json(res, 404, { error: 'Not found' });
+    const ext = path.extname(filePath);
+    const types = { '.html':'text/html', '.css':'text/css', '.js':'text/javascript', '.svg':'image/svg+xml' };
+    res.writeHead(200, { 'Content-Type': `${types[ext] || 'application/octet-stream'}; charset=utf-8`, 'Cache-Control': 'no-store' });
+    fs.createReadStream(filePath).pipe(res);
+  } catch (error) {
+    if (!res.headersSent) json(res, 500, { error: error.message || 'Server request failed.' });
+    else res.end();
+  }
 });
 
 server.listen(PORT, '127.0.0.1', () => console.log(`TicketRadar is ready at http://localhost:${PORT}`));
