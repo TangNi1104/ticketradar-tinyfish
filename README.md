@@ -33,13 +33,13 @@ The live event data is never mocked. The interface captures the complete notific
 Users choose artists to follow and provide
 an email address for alerts.
 
-![Artist discovery](screenshots/01-landing.png)
+![Artist discovery](screenshots/01-landing_page.png)
 
 ### 2. Concert Dashboard
 Discover shows, presales, prices, and
 official ticket links in one place.
 
-![Dashboard](screenshots/02-dashboard.png)
+![Dashboard](screenshots/02_dashboard.png)
 
 ### 3. Get Me In
 For users prioritising tickets at release.
