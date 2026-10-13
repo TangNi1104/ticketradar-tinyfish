@@ -279,7 +279,8 @@ async function discover(req, res) {
 
 const server = http.createServer((req, res) => {
   if (req.method === 'POST' && req.url === '/api/discover') return discover(req, res);
-  const rawPath = req.url === '/' ? '/index.html' : req.url.split('?')[0];
+  const pathname = req.url.split('?')[0];
+  const rawPath = pathname === '/' ? '/index.html' : pathname;
   const filePath = path.resolve(publicDir, '.' + rawPath);
   if (!filePath.startsWith(publicDir) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) return json(res, 404, { error: 'Not found' });
   const ext = path.extname(filePath);
