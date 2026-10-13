@@ -22,6 +22,8 @@ For each concert, users choose between two routes:
 
 The TicketRadar logo returns to the home/setup screen. Once logged in, a compact **Menu** button reveals **Home**, **Discover**, **My watches**, and **Artists** only when clicked. The dashboard uses the same pull-out pattern, keeping its three radar views hidden until **Menu** is opened: **Discover** for all verified events, **My watches** for concerts with a saved ticket strategy, and **Artists** for the user's followed-artist list.
 
+To reduce distraction, the dashboard keeps only **Menu** and `@username` visible at the top right. **Alert email**, **Edit artists**, and **Scan live web** live inside the pull-out menu.
+
 The local prototype includes password-protected accounts. Passwords are salted and hashed, sessions use HTTP-only cookies, and artists, notification email, and watch preferences are stored in the ignored `.data/` directory rather than committed to GitHub. Accounts survive browser-data clearing and work across browsers connected to the same local TicketRadar server, but the local file database is not shared across devices. A public launch should replace it with hosted authentication and a production database.
 
 The live event data is never mocked. The interface captures the complete notification flow, but automatic background monitoring and email delivery require a deployed server, a scheduler, a database, and an email provider such as Resend or SendGrid; the local demo does not send real email while it is closed.
