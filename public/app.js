@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const state = { artists: JSON.parse(localStorage.getItem('tr_artists') || '[]'), email: localStorage.getItem('tr_email') || '', events: [], scanEvents: {}, watches: JSON.parse(localStorage.getItem('tr_watches') || '{}'), current: null, filter: 'all' };
+const state = { artists: JSON.parse(localStorage.getItem('tr_artists') || '[]'), email: localStorage.getItem('tr_email') || '', events: [], renderedEvents: [], scanEvents: {}, watches: JSON.parse(localStorage.getItem('tr_watches') || '{}'), current: null, filter: 'all', view: 'discover' };
 const esc = v => String(v ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const safeUrl = v => { try { const u = new URL(v); return ['http:','https:'].includes(u.protocol) ? u.href : ''; } catch { return ''; } };
 
@@ -17,15 +17,36 @@ function statusLabel(status) { return ({presale:'Presale soon','on-sale':'On sal
 function initials(name) { return String(name || '?').split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase(); }
 
 function render() {
-  const visible = state.events.filter(e => state.filter === 'all' || e.status === state.filter);
+  const source = state.view === 'watches' ? Object.values(state.watches).map(watch=>watch.event).filter(Boolean) : state.events;
+  const visible = source.filter(e => state.view === 'watches' || state.filter === 'all' || e.status === state.filter);
+  state.renderedEvents = visible;
   $('events').innerHTML = visible.map((event,index) => {
-    const original = state.events.indexOf(event); const watched = state.watches[event.id]; const url = safeUrl(event.purchaseUrl);
-    return `<article class="event-card"><div class="event-art tone-${original%4}"><span>${esc(initials(event.artist))}</span><b>${esc(event.artist)}</b></div><div class="event-body"><div class="event-top"><span class="pill ${esc(event.status)}">${esc(statusLabel(event.status))}</span><span class="seller">via ${esc(event.seller || 'official seller')}</span></div><h3>${esc(event.title || event.artist)}</h3><p class="place">⌖ ${esc(event.venue || 'London venue')} · ${esc(event.date || 'Date not announced')}</p><div class="sale-grid"><div><small>PRESALE</small><b>${esc(event.presaleDate || 'Not found')}</b></div><div><small>GENERAL SALE</small><b>${esc(event.generalSaleDate || 'Not found')}</b></div><div><small>PRICE</small><b>${esc(event.price || 'Not shown')}</b></div></div><div class="card-actions"><button class="watch ${watched?'saved':''}" data-watch="${original}">${watched ? '✓ Watch saved' : 'Set ticket strategy'}</button>${url ? `<a href="${esc(url)}" target="_blank" rel="noopener">Official tickets ↗</a>` : '<span class="unavailable">Link not verified</span>'}</div></div></article>`;
+    const watched = state.watches[event.id]; const url = safeUrl(event.purchaseUrl);
+    return `<article class="event-card"><div class="event-art tone-${index%4}"><span>${esc(initials(event.artist))}</span><b>${esc(event.artist)}</b></div><div class="event-body"><div class="event-top"><span class="pill ${esc(event.status)}">${esc(statusLabel(event.status))}</span><span class="seller">via ${esc(event.seller || 'official seller')}</span></div><h3>${esc(event.title || event.artist)}</h3><p class="place">⌖ ${esc(event.venue || 'London venue')} · ${esc(event.date || 'Date not announced')}</p><div class="sale-grid"><div><small>PRESALE</small><b>${esc(event.presaleDate || 'Not found')}</b></div><div><small>GENERAL SALE</small><b>${esc(event.generalSaleDate || 'Not found')}</b></div><div><small>PRICE</small><b>${esc(event.price || 'Not shown')}</b></div></div><div class="card-actions"><button class="watch ${watched?'saved':''}" data-watch="${index}">${watched ? '✓ Watch saved' : 'Set ticket strategy'}</button>${url ? `<a href="${esc(url)}" target="_blank" rel="noopener">Official tickets ↗</a>` : '<span class="unavailable">Link not verified</span>'}</div></div></article>`;
   }).join('');
   $('empty').classList.toggle('hidden', visible.length > 0);
   const alerts = state.events.filter(e => e.presale?.published);
   $('presale-alerts').innerHTML = alerts.map(e => `<div class="presale-banner"><div class="bell">✦</div><div><b>Presale update · ${esc(e.artist)}</b><p>${e.presale.code ? `Official public code: <strong>${esc(e.presale.code)}</strong>` : esc(e.presale.instructions || 'Official presale information has been published.')}</p></div>${safeUrl(e.presale.url) ? `<a href="${esc(safeUrl(e.presale.url))}" target="_blank" rel="noopener">View official source ↗</a>` : ''}</div>`).join('');
   $('watch-count').textContent = Object.keys(state.watches).length;
+}
+
+function closeMenu(){ $('side-menu').classList.remove('open'); $('menu-backdrop').classList.add('hidden'); }
+function setView(view){
+  state.view=view;
+  document.querySelectorAll('[data-view]').forEach(button=>button.classList.toggle('active',button.dataset.view===view));
+  $('discover-content').classList.toggle('hidden',view==='artists');
+  $('artists-view').classList.toggle('hidden',view!=='artists');
+  $('presale-alerts').classList.toggle('hidden',view==='watches');
+  $('filter-row').classList.toggle('hidden',view==='watches');
+  $('view-title').textContent=view==='watches'?'My ticket watches':view==='artists'?'Followed artists':'Upcoming drops';
+  $('empty-title').textContent=view==='watches'?'No ticket watches yet':'No verified London shows found';
+  $('empty-copy').textContent=view==='watches'?'Choose “Set ticket strategy” on a concert to add it here.':'That can change fast. Scan again later—we won’t invent events that aren’t confirmed.';
+  render(); closeMenu();
+}
+function showHome(push=true){
+  closeMenu();
+  $('loading').classList.add('hidden'); $('dashboard').classList.add('hidden'); $('error').classList.add('hidden'); $('onboarding').classList.remove('hidden');
+  if(push) history.pushState({page:'home'},'',location.pathname);
 }
 
 async function scan() {
@@ -45,11 +66,16 @@ async function scan() {
 $('start').addEventListener('click',()=>{localStorage.setItem('tr_artists',JSON.stringify(state.artists));localStorage.setItem('tr_email',state.email);scan();});
 $('refresh').addEventListener('click',scan);$('retry').addEventListener('click',scan);
 $('edit-artists').addEventListener('click',()=>{$('dashboard').classList.add('hidden');$('onboarding').classList.remove('hidden');});
+$('menu-toggle').addEventListener('click',()=>{$('side-menu').classList.toggle('open');$('menu-backdrop').classList.toggle('hidden',!$('side-menu').classList.contains('open'));});
+$('menu-backdrop').addEventListener('click',closeMenu);
+document.querySelectorAll('[data-view]').forEach(button=>button.addEventListener('click',()=>setView(button.dataset.view)));
+document.querySelectorAll('.logo').forEach(logo=>logo.addEventListener('click',e=>{e.preventDefault();showHome();}));
+window.addEventListener('popstate',()=>showHome(false));
 $('notification-settings').addEventListener('click',()=>{$('settings-email').value=state.email;$('email-dialog').showModal();});
 $('email-form').addEventListener('submit',e=>{if(e.submitter?.value==='cancel')return;const email=$('settings-email').value.trim();if(!validEmail(email)){e.preventDefault();$('settings-email').focus();return;}state.email=email;$('notification-email').value=email;localStorage.setItem('tr_email',email);chips();showToast(`Alert email saved. Your watches will use ${email}.`);});
 document.querySelectorAll('.filter').forEach(btn=>btn.addEventListener('click',()=>{document.querySelectorAll('.filter').forEach(b=>b.classList.remove('active'));btn.classList.add('active');state.filter=btn.dataset.filter;render();}));
 
-$('events').addEventListener('click',e=>{const i=e.target.dataset.watch;if(i===undefined)return;state.current=state.events[Number(i)];$('dialog-title').textContent=state.current.artist;$('dialog-meta').textContent=`${state.current.venue} · ${state.current.date}`;const existing=state.watches[state.current.id];if(existing){document.querySelector(`input[name="mode"][value="${existing.mode}"]`).checked=true;$('budget').value=existing.budget||'';$('quantity').value=existing.quantity||'2';$('section').value=existing.section||'';$('ticket-type').value=existing.ticketType||'Primary or official resale';}toggleChance();$('watch-dialog').showModal();});
+$('events').addEventListener('click',e=>{const i=e.target.dataset.watch;if(i===undefined)return;state.current=state.renderedEvents[Number(i)];$('dialog-title').textContent=state.current.artist;$('dialog-meta').textContent=`${state.current.venue} · ${state.current.date}`;const existing=state.watches[state.current.id];if(existing){document.querySelector(`input[name="mode"][value="${existing.mode}"]`).checked=true;$('budget').value=existing.budget||'';$('quantity').value=existing.quantity||'2';$('section').value=existing.section||'';$('ticket-type').value=existing.ticketType||'Primary or official resale';}toggleChance();$('watch-dialog').showModal();});
 function toggleChance(){const mode=document.querySelector('input[name="mode"]:checked').value;$('chance-fields').classList.toggle('hidden',mode!=='chance');$('budget').required=mode==='chance';}
 document.querySelectorAll('input[name="mode"]').forEach(r=>r.addEventListener('change',toggleChance));
 $('watch-form').addEventListener('submit',e=>{if(e.submitter?.value==='cancel')return;const mode=document.querySelector('input[name="mode"]:checked').value;if(mode==='chance'&&!$('budget').value){e.preventDefault();$('budget').focus();return;}state.watches[state.current.id]={mode,email:state.email,budget:$('budget').value,quantity:$('quantity').value,section:$('section').value.trim(),ticketType:$('ticket-type').value,event:state.current};localStorage.setItem('tr_watches',JSON.stringify(state.watches));render();showToast(mode==='immediate'?`Sale reminders saved for ${state.email}.`:`Price watch saved for ${state.email}.`);});
