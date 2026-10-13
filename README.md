@@ -19,6 +19,8 @@ For each concert, users choose between two routes:
    - **Take a chance:** set budget, quantity, section, and permitted ticket source.
 5. When an alert rule is met, TicketRadar emails the user and links directly to the verified official purchase page.
 
+The TicketRadar logo returns to the home/setup screen. The dashboard menu provides three views: **Discover** for all verified events, **My watches** for concerts with a saved ticket strategy, and **Artists** for the user's followed-artist list. On smaller screens, these choices appear in a pull-out menu.
+
 Saved artists, notification email, and watch preferences persist locally in this hackathon MVP. The live event data is never mocked. The interface captures the complete notification flow, but automatic background monitoring and email delivery require a deployed server, a scheduler, a database, and an email provider such as Resend or SendGrid; the local demo does not send real email while it is closed.
 
 ## Run locally
